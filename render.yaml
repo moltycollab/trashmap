@@ -1,8 +1,8 @@
 services:
   - name: trashmap-backend
     type: web
-    dockerfile: backend/Dockerfile
-    dockerContext: .
+    dockerfile: Dockerfile
+    dockerContext: backend
     envVars:
       - key: DATABASE_URL
         fromDatabase:
