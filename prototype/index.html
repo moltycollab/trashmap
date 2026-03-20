@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashMap - Prototipo</title>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+        }
+        
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .logo {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: auto;
+        }
+        
+        .logo h1 {
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo span {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        
+        .btn {
+            background: rgba(0, 255, 136, 0.9);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: #00ff88;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Modal de reporte */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-content h2 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .form-actions .btn {
+            flex: 1;
+        }
+        
+        /* Marcadores */
+        .marker {
+            cursor: pointer;
+        }
+        
+        /* Popup */
+        .maplibregl-popup-content {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .maplibregl-popup-tip {
+            border-top-color: #1a1a1a;
+        }
+        
+        .report-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .type-plastico { background: #ff6b6b; color: #000; }
+        .type-organico { background: #4ecdc4; color: #000; }
+        .type-electronico { background: #ffe66d; color: #000; }
+        .type-construccion { background: #95e1d3; color: #000; }
+        .type-mixto { background: #ff8b94; color: #000; }
+        
+        .report-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        .stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        .stats h3 {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00ff88;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            color: #888;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        /* Coordenadas display */
+        .coords {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #888;
+            font-family: monospace;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>🗑️ TrashMap</h1>
+            <span>Mapeo colaborativo de basurales</span>
+        </div>
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="locateUser()">📍 Mi ubicación</button>
+            <button class="btn" onclick="openModal()">➕ Reportar basural</button>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="coords" id="coords">10.4806, -66.9036</div>
+    
+    <div class="stats">
+        <h3>Reportes en esta área</h3>
+        <div class="stats-number" id="reportCount">0</div>
+    </div>
+    
+    <div class="legend">
+        <h4>Tipo de residuos</h4>
+        <div class="legend-item"><div class="legend-color" style="background: #ff6b6b;"></div> Plásticos</div>
+        <div class="legend-item"><div class="legend-color" style="background: #4ecdc4;"></div> Orgánicos</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ffe66d;"></div> Electrónicos</div>
+        <div class="legend-item"><div class="legend-color" style="background: #95e1d3;"></div> Construcción</div>
+        <div class="legend-item"><div class="legend-color" style="background: #ff8b94;"></div> Mixtos</div>
+    </div>
+    
+    <!-- Modal de reporte -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <h2>📍 Reportar basural</h2>
+            <form id="reportForm">
+                <div class="form-group">
+                    <label>Tipo de residuos</label>
+                    <select id="wasteType" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="plastico">🥤 Plásticos / Envases</option>
+                        <option value="organico">🍂 Orgánicos / Vegetal</option>
+                        <option value="electronico">📱 Electrónicos / RAEE</option>
+                        <option value="construccion">🧱 Escombros / Construcción</option>
+                        <option value="mixto">🗑️ Mixtos / Varios</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tamaño aproximado</label>
+                    <select id="size" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="small">Pequeño (bolsa)</option>
+                        <option value="medium">Mediano (cajón)</option>
+                        <option value="large">Grande (camioneta)</option>
+                        <option value="huge">Masivo (camión)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descripción / Notas</label>
+                    <textarea id="notes" placeholder="Detalles adicionales, acceso, peligrosidad..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn">Reportar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar mapa centrado en Buenos Aires
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm': {
+                        type: 'raster',
+                        tiles: [
+                            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                        ],
+                        tileSize: 256,
+                        attribution: '© OpenStreetMap contributors'
+                    }
+                },
+                layers: [{
+                    id: 'osm',
+                    type: 'raster',
+                    source: 'osm'
+                }]
+            },
+            center: [-66.9036, 10.4806],  // Caracas, Venezuela
+            zoom: 13
+        });
+        
+        // Agregar controles de navegación
+        map.addControl(new maplibregl.NavigationControl());
+        
+        // Colores por tipo de residuo
+        const wasteColors = {
+            plastico: '#ff6b6b',
+            organico: '#4ecdc4',
+            electronico: '#ffe66d',
+            construccion: '#95e1d3',
+            mixto: '#ff8b94'
+        };
+        
+        const wasteLabels = {
+            plastico: 'Plásticos',
+            organico: 'Orgánicos',
+            electronico: 'Electrónicos',
+            construccion: 'Construcción',
+            mixto: 'Mixtos'
+        };
+        
+        // Configuración API - Auto-detectar entorno
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000'  // Desarrollo local
+            : 'https://trashmap-api.onrender.com';  // Producción (cambiar cuando se despliegue)
+        
+        // Reportes (se cargan desde API)
+        let reports = [];
+        
+        // Variable para guardar coordenadas del clic
+        let selectedCoords = null;
+        
+        // Mostrar estado de carga
+        function showLoading() {
+            document.getElementById('reportCount').textContent = '...';
+        }
+        
+        // Cargar reportes desde la API
+        async function fetchReports() {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/reports`);
+                if (!response.ok) throw new Error('Error fetching reports');
+                const data = await response.json();
+                reports = data.map(r => ({
+                    id: r.id,
+                    type: r.waste_type,
+                    size: r.size,
+                    notes: r.notes || 'Sin notas',
+                    coords: [r.longitude, r.latitude],
+                    date: r.created_at.split('T')[0],
+                    reporter: r.reporter_id,
+                    status: r.status
+                }));
+                loadReports();
+            } catch (error) {
+                console.error('Error cargando reportes:', error);
+                document.getElementById('reportCount').textContent = 'ERR';
+                // Fallback a datos de ejemplo si el backend no está disponible
+                reports = [
+                    {
+                        id: 'demo-1',
+                        type: 'plastico',
+                        size: 'large',
+                        notes: '⚠️ Backend no disponible - Modo demo',
+                        coords: [-58.3916, -34.6137],
+                        date: '2026-02-02',
+                        reporter: '@demo',
+                        status: 'active'
+                    }
+                ];
+                loadReports();
+            }
+        }
+        
+        // Buscar reportes en área visible
+        async function searchReportsInArea() {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            // Aproximación: cada nivel de zoom duplica la precisión
+            const radiusKm = Math.max(1, 20 / Math.pow(2, zoom - 10));
+            
+            showLoading();
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/api/v1/reports/area/search?lat=${center.lat}&lon=${center.lng}&radius_km=${radiusKm}`
+                );
+                if (!response.ok) throw new Error('Error searching reports');
+                const data = await response.json();
+                reports = data.reports.map(r => ({
+                    id: r.id,
+                    type: r.waste_type,
+                    size: r.size,
+                    notes: r.notes || 'Sin notas',
+                    coords: [r.longitude, r.latitude],
+                    date: r.created_at.split('T')[0],
+                    reporter: r.reporter_id,
+                    status: r.status
+                }));
+                loadReports();
+            } catch (error) {
+                console.error('Error buscando reportes:', error);
+                // Silencioso - no mostrar error al usuario en búsqueda automática
+            }
+        }
+        
+        // Cargar reportes en el mapa
+        function loadReports() {
+            // Limpiar marcadores anteriores
+            document.querySelectorAll('.marker').forEach(m => m.remove());
+            
+            reports.forEach(report => {
+                const el = document.createElement('div');
+                el.className = 'marker';
+                el.style.width = report.size === 'small' ? '20px' : 
+                                report.size === 'medium' ? '30px' : 
+                                report.size === 'large' ? '40px' : '50px';
+                el.style.height = el.style.width;
+                el.style.background = wasteColors[report.type];
+                el.style.borderRadius = '50%';
+                el.style.border = '3px solid #fff';
+                el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
+                el.style.opacity = report.status === 'cleaned' ? '0.5' : '1';
+                
+                const statusLabel = report.status === 'cleaned' ? ' ✅ LIMPIO' : 
+                                   report.status === 'verified' ? ' ✓ VERIFICADO' : '';
+                
+                const popup = new maplibregl.Popup({ offset: 25 })
+                    .setHTML(`
+                        <div>
+                            <span class="report-type type-${report.type}">${wasteLabels[report.type]}${statusLabel}</span>
+                            <p><strong>Tamaño:</strong> ${report.size}</p>
+                            <p>${report.notes}</p>
+                            <div class="report-date">📅 ${report.date} por ${report.reporter}</div>
+                        </div>
+                    `);
+                
+                new maplibregl.Marker(el)
+                    .setLngLat(report.coords)
+                    .setPopup(popup)
+                    .addTo(map);
+            });
+            
+            // Actualizar contador
+            document.getElementById('reportCount').textContent = reports.length;
+        }
+        
+        // Cargar reportes iniciales cuando el mapa esté listo
+        // Centrar en Venezuela (Caracas) por defecto
+        map.on('load', () => {
+            map.flyTo({ center: [-66.9036, 10.4806], zoom: 12 });  // Caracas
+            fetchReports();
+        });
+        
+        // Recargar reportes cuando se mueve el mapa (debounce)
+        let debounceTimer;
+        map.on('moveend', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(searchReportsInArea, 500);
+        });
+        
+        // Actualizar coordenadas mostradas
+        map.on('move', () => {
+            const center = map.getCenter();
+            document.getElementById('coords').textContent = 
+                `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`;
+        });
+        
+        // Click en el mapa para reportar
+        map.on('click', (e) => {
+            selectedCoords = [e.lngLat.lng, e.lngLat.lat];
+            openModal();
+        });
+        
+        // Modal functions
+        function openModal() {
+            document.getElementById('reportModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('reportModal').classList.remove('active');
+            selectedCoords = null;
+        }
+        
+        // Cerrar modal al hacer click fuera
+        document.getElementById('reportModal').addEventListener('click', (e) => {
+            if (e.target.id === 'reportModal') closeModal();
+        });
+        
+        // Submit del formulario - Enviar a API
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedCoords) {
+                alert('Por favor haz clic en el mapa para seleccionar la ubicación');
+                return;
+            }
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Enviando...';
+            submitBtn.disabled = true;
+            
+            const reportData = {
+                latitude: selectedCoords[1],
+                longitude: selectedCoords[0],
+                waste_type: document.getElementById('wasteType').value,
+                size: document.getElementById('size').value,
+                notes: document.getElementById('notes').value || null,
+                reporter_id: 'agent-nautilus'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/reports`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(reportData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${await response.text()}`);
+                }
+                
+                const savedReport = await response.json();
+                
+                // Agregar a la lista local
+                reports.push({
+                    id: savedReport.id,
+                    type: savedReport.waste_type,
+                    size: savedReport.size,
+                    notes: savedReport.notes || 'Sin notas',
+                    coords: [savedReport.longitude, savedReport.latitude],
+                    date: savedReport.created_at.split('T')[0],
+                    reporter: savedReport.reporter_id,
+                    status: savedReport.status
+                });
+                
+                loadReports();
+                closeModal();
+                
+                // Reset form
+                document.getElementById('reportForm').reset();
+                
+                // Animar al nuevo marcador
+                map.flyTo({ center: selectedCoords, zoom: 16 });
+                
+            } catch (error) {
+                console.error('Error enviando reporte:', error);
+                alert('Error al guardar el reporte. Verifica que el backend esté corriendo en ' + API_BASE_URL);
+                
+                // Fallback: agregar localmente solo para demo
+                const fallbackReport = {
+                    id: 'local-' + Date.now(),
+                    type: reportData.waste_type,
+                    size: reportData.size,
+                    notes: reportData.notes || '⚠️ No guardado en backend (modo local)',
+                    coords: selectedCoords,
+                    date: new Date().toISOString().split('T')[0],
+                    reporter: reportData.reporter_id,
+                    status: 'active'
+                };
+                reports.push(fallbackReport);
+                loadReports();
+                closeModal();
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Geolocalización del usuario
+        function locateUser() {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const coords = [position.coords.longitude, position.coords.latitude];
+                        map.flyTo({ center: coords, zoom: 15 });
+                        
+                        // Agregar marcador de ubicación
+                        new maplibregl.Marker({ color: '#00ff88' })
+                            .setLngLat(coords)
+                            .setPopup(new maplibregl.Popup().setHTML('📍 Tu ubicación'))
+                            .addTo(map);
+                    },
+                    (err) => {
+                        alert('No se pudo obtener tu ubicación: ' + err.message);
+                    }
+                );
+            } else {
+                alert('Tu navegador no soporta geolocalización');
+            }
+        }
+        
+        // Cerrar modal con ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>
