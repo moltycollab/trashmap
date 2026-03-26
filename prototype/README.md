@@ -1,9 +1,9 @@
-# TrashMap - Prototipo v1.0
+# TrashMap - Prototipo v2.0
 
 > Prototipo funcional de mapa interactivo para reporte de basurales informales
 
-**Fecha:** 2026-02-02  
-**Estado:** ✅ Funcional - Listo para demostración
+**Fecha:** 2026-03-25  
+**Estado:** ✅ Funcional - Modo Demo Standalone (sin backend)
 
 ---
 
@@ -66,8 +66,12 @@ python -m http.server 8080
 5. **Agregar notas:** Opcional, detalles adicionales
 6. **Enviar:** Guarda en backend, aparece marcador en el mapa
 
-### Modo Demo (Sin Backend)
-Si el backend no está disponible, el frontend funciona en modo demo con datos locales.
+### Modo Demo (Sin Backend) - ¡NUEVO!
+Si el backend no está disponible, el frontend funciona en **modo demo standalone**:
+- 15 reportes de ejemplo en Venezuela
+- Banner amarillo indica "Modo Demo"
+- Puedo recibir reportes localmente (se pierden al recargar)
+- Ideal para presentar el prototipo antes de desplegar backend
 
 ---
 
@@ -89,12 +93,29 @@ Si el backend no está disponible, el frontend funciona en modo demo con datos l
 
 ---
 
-## 📊 Datos de Ejemplo
+## 📊 Datos de Ejemplo (Mock Data)
 
-Incluye 3 reportes de prueba en Buenos Aires:
-1. Acumulación plástica (Retiro)
-2. Restos de poda (Palermo)
-3. Basura electrónica (La Boca)
+El prototipo incluye **15 reportes de demo** distribuidos por Venezuela:
+
+| # | Tipo | Ubicación | Estado |
+|---|------|-----------|--------|
+| 1 | Plástico | Costa Vargas | active |
+| 2 | Electrónico | Caracas | active |
+| 3 | Doméstico | Maracay | verified |
+| 4 | Industrial | Maracaibo | active |
+| 5 | Plástico | Puerto La Cruz | active |
+| 6 | Doméstico | Barquisimeto | cleaned |
+| 7 | Vidrio | Ciudad Bolívar | active |
+| 8 | Papel | Caracas-Sabana Grande | verified |
+| 9 | Plástico | Yaritagua | active |
+| 10 | Electrónico | Valencia | active |
+| 11 | Doméstico | Barinas | active |
+| 12 | Textil | San Felipe | cleaned |
+| 13 | Plástico | Petare (Caracas) | active |
+| 14 | Industrial | Punto Fijo | verified |
+| 15 | Doméstico | Acarigua | active |
+
+**Nota:** Estos datos se cargan automáticamente cuando el backend no está disponible, permitiendo демо completo sin desplegar.
 
 ---
 

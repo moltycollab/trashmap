@@ -6,6 +6,7 @@
     <title>TrashMap - Prototipo</title>
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="mock-data.js"></script>
     <style>
         * {
             margin: 0;
@@ -290,6 +291,10 @@
         <div class="stats-number" id="reportCount">0</div>
     </div>
     
+    <div id="demoBanner" style="display:none; position:absolute; top:20px; right:20px; background:#ffe66d; color:#000; padding:8px 12px; border-radius:8px; font-size:12px; z-index:1000;">
+        🗺️ Modo Demo - Datos de ejemplo
+    </div>
+    
     <div class="legend">
         <h4>Tipo de residuos</h4>
         <div class="legend-item"><div class="legend-color" style="background: #ff6b6b;"></div> Plásticos</div>
@@ -423,18 +428,8 @@
                 console.error('Error cargando reportes:', error);
                 document.getElementById('reportCount').textContent = 'ERR';
                 // Fallback a datos de ejemplo si el backend no está disponible
-                reports = [
-                    {
-                        id: 'demo-1',
-                        type: 'plastico',
-                        size: 'large',
-                        notes: '⚠️ Backend no disponible - Modo demo',
-                        coords: [-58.3916, -34.6137],
-                        date: '2026-02-02',
-                        reporter: '@demo',
-                        status: 'active'
-                    }
-                ];
+                reports = getMockReports();
+                document.getElementById('demoBanner').style.display = 'block';
                 loadReports();
             }
         }
